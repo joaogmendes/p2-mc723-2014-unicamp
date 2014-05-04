@@ -143,10 +143,12 @@ int TestaControlHazard(){
 			}
 			else if(!taken && historicoPredictor == 3) {
 				historicoPredictor = 2;
+				bolhas += N_STAGES;
 				return N_STAGES;
 			}
 			else if(!taken && historicoPredictor == 2) {
 				historicoPredictor = 0;
+				bolhas += N_STAGES;
 				return N_STAGES;
 			}
 		}
