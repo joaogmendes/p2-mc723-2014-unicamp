@@ -65,10 +65,9 @@ typedef struct{
 
 /* Defines sobre o modelo */
 /* estagios do pipeline */
-#define N_STAGES 5
+int N_STAGES;
 /* bits do branch predictor (1 = 1 bit, 0 = 2 bits) */
-#define BR_PR 0
-
+int BR_PR;
 
 /* Variaveis globais*/
 /* contadores */
@@ -83,7 +82,7 @@ int historicoPredictor;
 int taken;
 
 /* Snapshot do Pipeline */
-Instrucao hist[N_STAGES];
+Instrucao hist[];
 
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
 void Put(Instrucao novaInstrucao){
@@ -240,6 +239,15 @@ void ac_behavior(begin)
   hi = 0;
   lo = 0;
   
+  int aux;
+  printf("Numero de estagios do pipeline: ");
+  scanf("%d",&N_STAGES);
+  printf("Bits do Branch Prediction: ");
+  scanf("%d",&aux);
+  if(aux=2) BR_PR = 0;
+  else BR_PR = 1;
+  
+  hist = malloc(N_STAGES * sizeof(Instrucao));
   ciclos = N_STAGES-1;
   bolhas = 0;
   historicoPredictor = 0;
