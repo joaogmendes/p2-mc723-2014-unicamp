@@ -85,6 +85,7 @@ int taken;
 Instrucao* hist;
 
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
+/* Tambem verifica hazards e outras otimizacoes, atualizando os contadores */
 void Put(Instrucao novaInstrucao){
 	int i = 0;
 	for (i = 0; i < N_STAGES-1; i++){
