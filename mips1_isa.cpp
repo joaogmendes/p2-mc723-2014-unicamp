@@ -231,6 +231,14 @@ void ac_behavior( lbu )
 void ac_behavior( lh )
 {
   short int half;
+  
+  Instrucao t;
+  t.instrucao = ilh;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("lh r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   half = DM.read_half(RB[rs]+ imm);
   RB[rt] = (ac_Sword)half ;
@@ -241,6 +249,14 @@ void ac_behavior( lh )
 void ac_behavior( lhu )
 {
   unsigned short int  half;
+  
+  Instrucao t;
+  t.instrucao = ilhu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   half = DM.read_half(RB[rs]+ imm);
   RB[rt] = half ;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -249,6 +265,13 @@ void ac_behavior( lhu )
 //!Instruction lw behavior method.
 void ac_behavior( lw )
 {
+  Instrucao t;
+  t.instrucao = ilw;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("lw r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   RB[rt] = DM.read(RB[rs]+ imm);
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -260,6 +283,13 @@ void ac_behavior( lwl )
   dbg_printf("lwl r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   unsigned int addr, offset;
   ac_Uword data;
+  
+  Instrucao t;
+  t.instrucao = ilwl;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
 
   addr = RB[rs] + imm;
   offset = (addr & 0x3) * 8;
@@ -276,6 +306,13 @@ void ac_behavior( lwr )
   dbg_printf("lwr r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   unsigned int addr, offset;
   ac_Uword data;
+  
+  Instrucao t;
+  t.instrucao = ilwr;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
 
   addr = RB[rs] + imm;
   offset = (3 - (addr & 0x3)) * 8;
@@ -290,6 +327,14 @@ void ac_behavior( lwr )
 void ac_behavior( sb )
 {
   unsigned char byte;
+  
+  Instrucao t;
+  t.instrucao = isb;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sb r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = RB[rt] & 0xFF;
   DM.write_byte(RB[rs] + imm, byte);
@@ -300,6 +345,14 @@ void ac_behavior( sb )
 void ac_behavior( sh )
 {
   unsigned short int half;
+  
+  Instrucao t;
+  t.instrucao = ish;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sh r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   half = RB[rt] & 0xFFFF;
   DM.write_half(RB[rs] + imm, half);
@@ -309,6 +362,13 @@ void ac_behavior( sh )
 //!Instruction sw behavior method.
 void ac_behavior( sw )
 {
+  Instrucao t;
+  t.instrucao = isw;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sw r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   DM.write(RB[rs] + imm, RB[rt]);
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -320,6 +380,13 @@ void ac_behavior( swl )
   dbg_printf("swl r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   unsigned int addr, offset;
   ac_Uword data;
+  
+  Instrucao t;
+  t.instrucao = iswl;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
 
   addr = RB[rs] + imm;
   offset = (addr & 0x3) * 8;
@@ -336,6 +403,13 @@ void ac_behavior( swr )
   dbg_printf("swr r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   unsigned int addr, offset;
   ac_Uword data;
+  
+  Instrucao t;
+  t.instrucao = iswr;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
 
   addr = RB[rs] + imm;
   offset = (3 - (addr & 0x3)) * 8;
@@ -349,6 +423,13 @@ void ac_behavior( swr )
 //!Instruction addi behavior method.
 void ac_behavior( addi )
 {
+  Instrucao t;
+  t.instrucao = iaddi;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("addi r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] + imm;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -362,6 +443,13 @@ void ac_behavior( addi )
 //!Instruction addiu behavior method.
 void ac_behavior( addiu )
 {
+  Instrucao t;
+  t.instrucao = iaddiu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("addiu r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] + imm;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -370,6 +458,13 @@ void ac_behavior( addiu )
 //!Instruction slti behavior method.
 void ac_behavior( slti )
 {
+  Instrucao t;
+  t.instrucao = islti;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("slti r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Set the RD if RS< IMM
   if( (ac_Sword) RB[rs] < (ac_Sword) imm )
@@ -383,6 +478,13 @@ void ac_behavior( slti )
 //!Instruction sltiu behavior method.
 void ac_behavior( sltiu )
 {
+  Instrucao t;
+  t.instrucao = isltiu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sltiu r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Set the RD if RS< IMM
   if( (ac_Uword) RB[rs] < (ac_Uword) imm )
@@ -396,6 +498,13 @@ void ac_behavior( sltiu )
 //!Instruction andi behavior method.
 void ac_behavior( andi )
 {	
+  Instrucao t;
+  t.instrucao = iandi;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("andi r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] & (imm & 0xFFFF) ;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -404,6 +513,13 @@ void ac_behavior( andi )
 //!Instruction ori behavior method.
 void ac_behavior( ori )
 {	
+  Instrucao t;
+  t.instrucao = iori;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("ori r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] | (imm & 0xFFFF) ;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -412,6 +528,13 @@ void ac_behavior( ori )
 //!Instruction xori behavior method.
 void ac_behavior( xori )
 {	
+  Instrucao t;
+  t.instrucao = ixori;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("xori r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] ^ (imm & 0xFFFF) ;
   dbg_printf("Result = %#x\n", RB[rt]);
@@ -420,6 +543,13 @@ void ac_behavior( xori )
 //!Instruction lui behavior method.
 void ac_behavior( lui )
 {	
+  Instrucao t;
+  t.instrucao = ilui;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("lui r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Load a constant in the upper 16 bits of a register
   // To achieve the desired behaviour, the constant was shifted 16 bits left
@@ -431,6 +561,13 @@ void ac_behavior( lui )
 //!Instruction add behavior method.
 void ac_behavior( add )
 {
+  Instrucao t;
+  t.instrucao = iadd;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("add r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] + RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -444,6 +581,13 @@ void ac_behavior( add )
 //!Instruction addu behavior method.
 void ac_behavior( addu )
 {
+  Instrucao t;
+  t.instrucao = iaddu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("addu r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] + RB[rt];
   //cout << "  RS: " << (unsigned int)RB[rs] << " RT: " << (unsigned int)RB[rt] << endl;
@@ -454,6 +598,13 @@ void ac_behavior( addu )
 //!Instruction sub behavior method.
 void ac_behavior( sub )
 {
+  Instrucao t;
+  t.instrucao = isub;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sub r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] - RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -463,6 +614,13 @@ void ac_behavior( sub )
 //!Instruction subu behavior method.
 void ac_behavior( subu )
 {
+  Instrucao t;
+  t.instrucao = isubu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("subu r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] - RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -471,6 +629,13 @@ void ac_behavior( subu )
 //!Instruction slt behavior method.
 void ac_behavior( slt )
 {	
+  Instrucao t;
+  t.instrucao = islt;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("slt r%d, r%d, r%d\n", rd, rs, rt);
   // Set the RD if RS< RT
   if( (ac_Sword) RB[rs] < (ac_Sword) RB[rt] )
@@ -484,6 +649,13 @@ void ac_behavior( slt )
 //!Instruction sltu behavior method.
 void ac_behavior( sltu )
 {
+  Instrucao t;
+  t.instrucao = isltu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sltu r%d, r%d, r%d\n", rd, rs, rt);
   // Set the RD if RS < RT
   if( RB[rs] < RB[rt] )
@@ -497,6 +669,13 @@ void ac_behavior( sltu )
 //!Instruction instr_and behavior method.
 void ac_behavior( instr_and )
 {
+  Instrucao t;
+  t.instrucao = iinstr_and;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("instr_and r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] & RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -505,6 +684,13 @@ void ac_behavior( instr_and )
 //!Instruction instr_or behavior method.
 void ac_behavior( instr_or )
 {
+  Instrucao t;
+  t.instrucao = iinstr_or;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("instr_or r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] | RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -513,6 +699,13 @@ void ac_behavior( instr_or )
 //!Instruction instr_xor behavior method.
 void ac_behavior( instr_xor )
 {
+  Instrucao t;
+  t.instrucao = iinstr_xor;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("instr_xor r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] ^ RB[rt];
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -521,6 +714,13 @@ void ac_behavior( instr_xor )
 //!Instruction instr_nor behavior method.
 void ac_behavior( instr_nor )
 {
+  Instrucao t;
+  t.instrucao = iinstr_nor;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("nor r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = ~(RB[rs] | RB[rt]);
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -529,12 +729,26 @@ void ac_behavior( instr_nor )
 //!Instruction nop behavior method.
 void ac_behavior( nop )
 {  
+  Instrucao t;
+  t.instrucao = inop;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("nop\n");
 };
 
 //!Instruction sll behavior method.
 void ac_behavior( sll )
 {  
+  Instrucao t;
+  t.instrucao = isll;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sll r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = RB[rt] << shamt;
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -543,6 +757,13 @@ void ac_behavior( sll )
 //!Instruction srl behavior method.
 void ac_behavior( srl )
 {
+  Instrucao t;
+  t.instrucao = isrl;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("srl r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = RB[rt] >> shamt;
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -551,6 +772,13 @@ void ac_behavior( srl )
 //!Instruction sra behavior method.
 void ac_behavior( sra )
 {
+  Instrucao t;
+  t.instrucao = isra;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sra r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = (ac_Sword) RB[rt] >> shamt;
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -559,6 +787,13 @@ void ac_behavior( sra )
 //!Instruction sllv behavior method.
 void ac_behavior( sllv )
 {
+  Instrucao t;
+  t.instrucao = isllv;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("sllv r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = RB[rt] << (RB[rs] & 0x1F);
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -567,6 +802,13 @@ void ac_behavior( sllv )
 //!Instruction srlv behavior method.
 void ac_behavior( srlv )
 {
+  Instrucao t;
+  t.instrucao = isrlv;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("srlv r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = RB[rt] >> (RB[rs] & 0x1F);
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -575,6 +817,13 @@ void ac_behavior( srlv )
 //!Instruction srav behavior method.
 void ac_behavior( srav )
 {
+  Instrucao t;
+  t.instrucao = israv;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("srav r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = (ac_Sword) RB[rt] >> (RB[rs] & 0x1F);
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -583,6 +832,13 @@ void ac_behavior( srav )
 //!Instruction mult behavior method.
 void ac_behavior( mult )
 {
+  Instrucao t;
+  t.instrucao = imult;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("mult r%d, r%d\n", rs, rt);
 
   long long result;
@@ -605,6 +861,13 @@ void ac_behavior( mult )
 //!Instruction multu behavior method.
 void ac_behavior( multu )
 {
+  Instrucao t;
+  t.instrucao = imultu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("multu r%d, r%d\n", rs, rt);
 
   unsigned long long result;
@@ -627,6 +890,13 @@ void ac_behavior( multu )
 //!Instruction div behavior method.
 void ac_behavior( div )
 {
+  Instrucao t;
+  t.instrucao = idiv;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("div r%d, r%d\n", rs, rt);
   // Register LO receives quotient
   lo = (ac_Sword) RB[rs] / (ac_Sword) RB[rt];
@@ -637,6 +907,13 @@ void ac_behavior( div )
 //!Instruction divu behavior method.
 void ac_behavior( divu )
 {
+  Instrucao t;
+  t.instrucao = idivu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("divu r%d, r%d\n", rs, rt);
   // Register LO receives quotient
   lo = RB[rs] / RB[rt];
@@ -647,6 +924,13 @@ void ac_behavior( divu )
 //!Instruction mfhi behavior method.
 void ac_behavior( mfhi )
 {
+  Instrucao t;
+  t.instrucao = imfhi;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("mfhi r%d\n", rd);
   RB[rd] = hi;
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -655,6 +939,13 @@ void ac_behavior( mfhi )
 //!Instruction mthi behavior method.
 void ac_behavior( mthi )
 {
+  Instrucao t;
+  t.instrucao = imthi;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("mthi r%d\n", rs);
   hi = RB[rs];
   dbg_printf("Result = %#x\n", hi);
@@ -663,6 +954,13 @@ void ac_behavior( mthi )
 //!Instruction mflo behavior method.
 void ac_behavior( mflo )
 {
+  Instrucao t;
+  t.instrucao = imflo;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("mflo r%d\n", rd);
   RB[rd] = lo;
   dbg_printf("Result = %#x\n", RB[rd]);
@@ -671,6 +969,13 @@ void ac_behavior( mflo )
 //!Instruction mtlo behavior method.
 void ac_behavior( mtlo )
 {
+  Instrucao t;
+  t.instrucao = imtlo;
+  t.rt = rs;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("mtlo r%d\n", rs);
   lo = RB[rs];
   dbg_printf("Result = %#x\n", lo);
@@ -679,6 +984,13 @@ void ac_behavior( mtlo )
 //!Instruction j behavior method.
 void ac_behavior( j )
 {
+  Instrucao t;
+  t.instrucao = ij;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("j %d\n", addr);
   addr = addr << 2;
 #ifndef NO_NEED_PC_UPDATE
@@ -690,6 +1002,13 @@ void ac_behavior( j )
 //!Instruction jal behavior method.
 void ac_behavior( jal )
 {
+  Instrucao t;
+  t.instrucao = ijal;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("jal %d\n", addr);
   // Save the value of PC + 8 (return address) in $ra ($31) and
   // jump to the address given by PC(31...28)||(addr<<2)
@@ -708,6 +1027,13 @@ void ac_behavior( jal )
 //!Instruction jr behavior method.
 void ac_behavior( jr )
 {
+  Instrucao t;
+  t.instrucao = ijr;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("jr r%d\n", rs);
   // Jump to the address stored on the register reg[RS]
   // It must also flush the instructions that were loaded into the pipeline
@@ -720,6 +1046,13 @@ void ac_behavior( jr )
 //!Instruction jalr behavior method.
 void ac_behavior( jalr )
 {
+  Instrucao t;
+  t.instrucao = ijalr;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = rd;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("jalr r%d, r%d\n", rd, rs);
   // Save the value of PC + 8(return address) in rd and
   // jump to the address given by [rs]
@@ -738,6 +1071,13 @@ void ac_behavior( jalr )
 //!Instruction beq behavior method.
 void ac_behavior( beq )
 {
+  Instrucao t;
+  t.instrucao = ibeq;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("beq r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   if( RB[rs] == RB[rt] ){
 #ifndef NO_NEED_PC_UPDATE
@@ -750,6 +1090,13 @@ void ac_behavior( beq )
 //!Instruction bne behavior method.
 void ac_behavior( bne )
 {	
+  Instrucao t;
+  t.instrucao = ibne;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bne r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   if( RB[rs] != RB[rt] ){
 #ifndef NO_NEED_PC_UPDATE
@@ -762,6 +1109,13 @@ void ac_behavior( bne )
 //!Instruction blez behavior method.
 void ac_behavior( blez )
 {
+  Instrucao t;
+  t.instrucao = iblez;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("blez r%d, %d\n", rs, imm & 0xFFFF);
   if( (RB[rs] == 0 ) || (RB[rs]&0x80000000 ) ){
 #ifndef NO_NEED_PC_UPDATE
@@ -774,6 +1128,13 @@ void ac_behavior( blez )
 //!Instruction bgtz behavior method.
 void ac_behavior( bgtz )
 {
+  Instrucao t;
+  t.instrucao = ibgtz;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bgtz r%d, %d\n", rs, imm & 0xFFFF);
   if( !(RB[rs] & 0x80000000) && (RB[rs]!=0) ){
 #ifndef NO_NEED_PC_UPDATE
@@ -786,6 +1147,13 @@ void ac_behavior( bgtz )
 //!Instruction bltz behavior method.
 void ac_behavior( bltz )
 {
+  Instrucao t;
+  t.instrucao = ibltz;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bltz r%d, %d\n", rs, imm & 0xFFFF);
   if( RB[rs] & 0x80000000 ){
 #ifndef NO_NEED_PC_UPDATE
@@ -798,6 +1166,13 @@ void ac_behavior( bltz )
 //!Instruction bgez behavior method.
 void ac_behavior( bgez )
 {
+  Instrucao t;
+  t.instrucao = ibgez;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bgez r%d, %d\n", rs, imm & 0xFFFF);
   if( !(RB[rs] & 0x80000000) ){
 #ifndef NO_NEED_PC_UPDATE
@@ -810,6 +1185,13 @@ void ac_behavior( bgez )
 //!Instruction bltzal behavior method.
 void ac_behavior( bltzal )
 {
+  Instrucao t;
+  t.instrucao = ibltzal;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bltzal r%d, %d\n", rs, imm & 0xFFFF);
   RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
   if( RB[rs] & 0x80000000 ){
@@ -824,6 +1206,13 @@ void ac_behavior( bltzal )
 //!Instruction bgezal behavior method.
 void ac_behavior( bgezal )
 {
+  Instrucao t;
+  t.instrucao = ibgezal;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("bgezal r%d, %d\n", rs, imm & 0xFFFF);
   RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
   if( !(RB[rs] & 0x80000000) ){
@@ -838,6 +1227,13 @@ void ac_behavior( bgezal )
 //!Instruction sys_call behavior method.
 void ac_behavior( sys_call )
 {
+  Instrucao t;
+  t.instrucao = isys_call;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("syscall\n");
   stop();
 }
@@ -845,6 +1241,13 @@ void ac_behavior( sys_call )
 //!Instruction instr_break behavior method.
 void ac_behavior( instr_break )
 {
+  Instrucao t;
+  t.instrucao = iinstr_break;
+  t.rt = -1;
+  t.rs = -1;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   fprintf(stderr, "instr_break behavior not implemented.\n"); 
   exit(EXIT_FAILURE);
 }
