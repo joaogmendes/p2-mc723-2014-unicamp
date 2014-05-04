@@ -43,7 +43,6 @@
 //#define DEBUG_MODEL
 #include "ac_debug_model.H"
 
-
 typedef enum{
 	iempty, ilb, ilbu, ilh, ilhu, ilw, ilwl, ilwr, isb, ish, isw, iswl, iswr, iaddi, iaddiu, islti, isltiu, iandi, iori, ixori, ilui, iadd, iaddu, isub, isubu, islt, isltu, iinstr_and, iinstr_or, iinstr_xor, iinstr_nor, inop, isll, isrl, isra, isllv, isrlv, israv, imult, imultu, idiv, idivu, imfhi, imthi, imflo, imtlo, ij, ijal, ijr, ijalr, ibeq, ibne, iblez, ibgtz, ibltz, ibgez, ibltzal, ibgezal, isys_call, iinstr_break
 }TipoInstrucao;
@@ -58,6 +57,17 @@ typedef struct{
 //!User defined macros to reference registers.
 #define Ra 31
 #define Sp 29
+
+
+
+/* Defines sobre o modelo */
+#define N_STAGES 5
+
+/* Variaveis globais, utilizadas para contabilizacao de ciclos */
+int ciclos;
+int bolhas;
+Instrucao hist[N_STAGES];
+
 
 void Put(Instrucao * vetorHistorico, int tamanho, Instrucao novaInstrucao){
 	int i = 0;
@@ -147,7 +157,10 @@ void ac_behavior( instruction )
 #ifndef NO_NEED_PC_UPDATE
   ac_pc = npc;
   npc = ac_pc + 4;
-#endif 
+#endif
+  t.
+  Put(hist, N_STAGES, t)
+  
 };
  
 //! Instruction Format behavior methods.
@@ -167,12 +180,17 @@ void ac_behavior(begin)
     RB[regNum] = 0;
   hi = 0;
   lo = 0;
+  
+  ciclos = 0;
+  bolhas = 0;
 }
 
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
   dbg_printf("@@@ end behavior @@@\n");
+  printf("Ciclos: %d\nBolhas: %d\n",ciclos,bolhas);
+  printf("Configuracao:\n   Estagios de Pipeline: %d\n",N_STAGES);
 }
 
 
@@ -180,6 +198,14 @@ void ac_behavior(end)
 void ac_behavior( lb )
 {
   char byte;
+  
+  Instrucao t;
+  t.instrucao = lb;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("lb r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = DM.read_byte(RB[rs]+ imm);
   RB[rt] = (ac_Sword)byte ;
@@ -190,6 +216,14 @@ void ac_behavior( lb )
 void ac_behavior( lbu )
 {
   unsigned char byte;
+  
+  Instrucao t;
+  t.instrucao = lbu;
+  t.rt = rt;
+  t.rs = rs;
+  t.rd = -1;
+  Put(hist,N_STAGES,t);
+  
   dbg_printf("lbu r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = DM.read_byte(RB[rs]+ imm);
   RB[rt] = byte ;
