@@ -61,52 +61,108 @@ typedef struct{
 
 
 /* Defines sobre o modelo */
+/* estagios do pipeline */
 #define N_STAGES 5
+/* bits do branch predictor (1 = 1 bit, 0 = 2 bits) */
+#define BR_PR 0
 
-/* Variaveis globais, utilizadas para contabilizacao de ciclos */
+
+/* Variaveis globais*/
+/* contadores */
 int ciclos;
 int bolhas;
+
+/* 'bit' do branch predictor: */
+/* se for 1bit: 0: not taken, 1: taken */
+/* se for 2bit: 0 e 1: not taken, 2 e 3: taken */
+int historicoPredictor; 
+/* referencia: 1 se branch foi realizado. 0 caso contrario */
+int taken;
+
+/* Snapshot do Pipeline */
 Instrucao hist[N_STAGES];
 
-
-void Put(Instrucao * vetorHistorico, int tamanho, Instrucao novaInstrucao){
+/* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
+void Put(Instrucao novaInstrucao){
 	int i = 0;
-	for (i = 0; i < tamanho-1; i++){
-		vetorHistorico[i + 1] = vetorHistorico[i];
+	for (i = 0; i < N_STAGES-1; i++){
+		hist[i + 1] = hist[i];
 	}
-	vetorHistorico[0] = novaInstrucao;
+	hist[0] = novaInstrucao;
+	/* TestaControlHazard() apenas se for jump ou branch */
+	if(hist[0].instrucao >= ij && hist[0].instrucao <= ibgezal) {
+		ciclos += TestaControlHazard();
+	} else ciclos++;
 }
 
 
-int TestaControlHazard(Instrucao * vetorHistorico, int tamanhoVetor, Instrucao novaInstrucao, int tipoBranchPrediction, int jumped, int historicoPredictor, int tamanhoPipeLine){
-	if (novaInstrucao.instrucao >= ij && novaInstrucao.instrucao <= ijalr)
-		return tamanhoPipeLine - 2;
-	if (tipoBranchPrediction){
-		if (jumped != historicoPredictor)
-			return tamanhoPipeLine - 2;
-		return 0;
+/* Verifica o status do branch predictor e se houve ou não o branch, e computa
+ciclos a mais (bolha) ou nao */
+int TestaControlHazard(){
+
+	/*se for algum Jump */
+	if (hist[0] >= ij && hist[0] <= ijalr) return N_STAGES-2;
+	
+	/*se for algum branch */
+	if(hist[0] >= ibeq && hist[0] <= ibgezal) {
+		/*se predictor for de 1 bit */
+		if (BR_PR) {
+			/* se predictor acertou, eh apenas mais um ciclo*/
+			if(taken == historicoPredictor) return 1;
+			/*se errou, tem que inserir bolhas e atualizar bit historico*/
+			else {
+				Empty();
+				historicoPredictor = taken;
+				/* +1 ciclo (execucao do branch), +N_STAGES-1 (encher pipeline novamente) */
+				bolhas += N_STAGES;
+				return N_STAGES;
+			}
+		/* se predictor for de 2 bits */
+		else {
+			if(taken && (historicoPredictor == 2 || historicoPredictor == 3)) {
+				historicoPredictor = 3;
+				return 1;
+			}
+			else if(taken && historicoPredictor) {
+				historicoPredictor = 3;
+				bolhas += N_STAGES;
+				return N_STAGES;
+			}
+			else if(taken && !historicoPredictor) {
+				historicoPredictor = 1;
+				bolhas += N_STAGES;
+				return N_STAGES;
+			}
+			else if(!taken && (historicoPredictor == 0 || historicoPredictor == 1)) {
+				historicoPredictor = 0;
+				return 1;
+			}
+			else if(!taken && historicoPredictor == 3) {
+				historicoPredictor = 2;
+				return N_STAGES;
+			}
+			else if(!taken && historicoPredictor == 2) {
+				historicoPredictor = 0;
+				return N_STAGES;
+			}
+		}
+		printf("Erro no Branch Predictor!\n");
 	}
-	else{
-		if (!jumped)
-			return tamanhoPipeLine - 2;
-		return 0;
-	}
+	return 0;
 }
 
 /*Funcao que esvazia vetor historico
 */
-void Empty(Instrucao* vetor_hist, int tamanho_hist)
+void Empty()
 {
 	int i;
-
-	for (i = 0; i < tamanho_hist; i++)
+	for (i = 0; i < N_STAGES; i++)
 	{
-		vetor_hist[i].instrucao = iempty;
-		vetor_hist[i].rs = -1;
-		vetor_hist[i].rt = -1;
-		vetor_hist[i].rd = -1;
+		hist[i].instrucao = iempty;
+		hist[i].rs = -1;
+		hist[i].rt = -1;
+		hist[i].rd = -1;
 	}
-
 	return;
 }
 
@@ -178,8 +234,9 @@ void ac_behavior(begin)
   hi = 0;
   lo = 0;
   
-  ciclos = 0;
+  ciclos = N_STAGES-1;
   bolhas = 0;
+  historicoPredictor = 0;
 }
 
 //!Behavior called after finishing simulation
@@ -201,7 +258,7 @@ void ac_behavior( lb )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("lb r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = DM.read_byte(RB[rs]+ imm);
@@ -219,7 +276,7 @@ void ac_behavior( lbu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("lbu r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = DM.read_byte(RB[rs]+ imm);
@@ -237,7 +294,7 @@ void ac_behavior( lh )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("lh r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   half = DM.read_half(RB[rs]+ imm);
@@ -255,7 +312,7 @@ void ac_behavior( lhu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   half = DM.read_half(RB[rs]+ imm);
   RB[rt] = half ;
@@ -270,7 +327,7 @@ void ac_behavior( lw )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("lw r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   RB[rt] = DM.read(RB[rs]+ imm);
@@ -289,7 +346,7 @@ void ac_behavior( lwl )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
 
   addr = RB[rs] + imm;
   offset = (addr & 0x3) * 8;
@@ -312,7 +369,7 @@ void ac_behavior( lwr )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
 
   addr = RB[rs] + imm;
   offset = (3 - (addr & 0x3)) * 8;
@@ -333,7 +390,7 @@ void ac_behavior( sb )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sb r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   byte = RB[rt] & 0xFF;
@@ -351,7 +408,7 @@ void ac_behavior( sh )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sh r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   half = RB[rt] & 0xFFFF;
@@ -367,7 +424,7 @@ void ac_behavior( sw )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sw r%d, %d(r%d)\n", rt, imm & 0xFFFF, rs);
   DM.write(RB[rs] + imm, RB[rt]);
@@ -386,7 +443,7 @@ void ac_behavior( swl )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
 
   addr = RB[rs] + imm;
   offset = (addr & 0x3) * 8;
@@ -409,7 +466,7 @@ void ac_behavior( swr )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
 
   addr = RB[rs] + imm;
   offset = (3 - (addr & 0x3)) * 8;
@@ -428,7 +485,7 @@ void ac_behavior( addi )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("addi r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] + imm;
@@ -448,7 +505,7 @@ void ac_behavior( addiu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("addiu r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] + imm;
@@ -463,7 +520,7 @@ void ac_behavior( slti )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("slti r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Set the RD if RS< IMM
@@ -483,7 +540,7 @@ void ac_behavior( sltiu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sltiu r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Set the RD if RS< IMM
@@ -503,7 +560,7 @@ void ac_behavior( andi )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("andi r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] & (imm & 0xFFFF) ;
@@ -518,7 +575,7 @@ void ac_behavior( ori )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("ori r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] | (imm & 0xFFFF) ;
@@ -533,7 +590,7 @@ void ac_behavior( xori )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("xori r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   RB[rt] = RB[rs] ^ (imm & 0xFFFF) ;
@@ -548,7 +605,7 @@ void ac_behavior( lui )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("lui r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   // Load a constant in the upper 16 bits of a register
@@ -566,7 +623,7 @@ void ac_behavior( add )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("add r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] + RB[rt];
@@ -586,7 +643,7 @@ void ac_behavior( addu )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("addu r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] + RB[rt];
@@ -603,7 +660,7 @@ void ac_behavior( sub )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sub r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] - RB[rt];
@@ -619,7 +676,7 @@ void ac_behavior( subu )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("subu r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] - RB[rt];
@@ -634,7 +691,7 @@ void ac_behavior( slt )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("slt r%d, r%d, r%d\n", rd, rs, rt);
   // Set the RD if RS< RT
@@ -654,7 +711,7 @@ void ac_behavior( sltu )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sltu r%d, r%d, r%d\n", rd, rs, rt);
   // Set the RD if RS < RT
@@ -674,7 +731,7 @@ void ac_behavior( instr_and )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("instr_and r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] & RB[rt];
@@ -689,7 +746,7 @@ void ac_behavior( instr_or )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("instr_or r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] | RB[rt];
@@ -704,7 +761,7 @@ void ac_behavior( instr_xor )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("instr_xor r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] ^ RB[rt];
@@ -719,7 +776,7 @@ void ac_behavior( instr_nor )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("nor r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = ~(RB[rs] | RB[rt]);
@@ -734,7 +791,7 @@ void ac_behavior( nop )
   t.rt = -1;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("nop\n");
 };
@@ -747,7 +804,7 @@ void ac_behavior( sll )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sll r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = RB[rt] << shamt;
@@ -762,7 +819,7 @@ void ac_behavior( srl )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("srl r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = RB[rt] >> shamt;
@@ -777,7 +834,7 @@ void ac_behavior( sra )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sra r%d, r%d, %d\n", rd, rs, shamt);
   RB[rd] = (ac_Sword) RB[rt] >> shamt;
@@ -792,7 +849,7 @@ void ac_behavior( sllv )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("sllv r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = RB[rt] << (RB[rs] & 0x1F);
@@ -807,7 +864,7 @@ void ac_behavior( srlv )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("srlv r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = RB[rt] >> (RB[rs] & 0x1F);
@@ -822,7 +879,7 @@ void ac_behavior( srav )
   t.rt = rt;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("srav r%d, r%d, r%d\n", rd, rt, rs);
   RB[rd] = (ac_Sword) RB[rt] >> (RB[rs] & 0x1F);
@@ -837,7 +894,7 @@ void ac_behavior( mult )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("mult r%d, r%d\n", rs, rt);
 
@@ -866,7 +923,7 @@ void ac_behavior( multu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("multu r%d, r%d\n", rs, rt);
 
@@ -895,7 +952,7 @@ void ac_behavior( div )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("div r%d, r%d\n", rs, rt);
   // Register LO receives quotient
@@ -912,7 +969,7 @@ void ac_behavior( divu )
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("divu r%d, r%d\n", rs, rt);
   // Register LO receives quotient
@@ -929,7 +986,7 @@ void ac_behavior( mfhi )
   t.rt = -1;
   t.rs = -1;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("mfhi r%d\n", rd);
   RB[rd] = hi;
@@ -944,7 +1001,7 @@ void ac_behavior( mthi )
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("mthi r%d\n", rs);
   hi = RB[rs];
@@ -959,7 +1016,7 @@ void ac_behavior( mflo )
   t.rt = -1;
   t.rs = -1;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("mflo r%d\n", rd);
   RB[rd] = lo;
@@ -974,7 +1031,7 @@ void ac_behavior( mtlo )
   t.rt = rs;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("mtlo r%d\n", rs);
   lo = RB[rs];
@@ -989,7 +1046,7 @@ void ac_behavior( j )
   t.rt = -1;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("j %d\n", addr);
   addr = addr << 2;
@@ -1007,7 +1064,7 @@ void ac_behavior( jal )
   t.rt = -1;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("jal %d\n", addr);
   // Save the value of PC + 8 (return address) in $ra ($31) and
@@ -1032,7 +1089,7 @@ void ac_behavior( jr )
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("jr r%d\n", rs);
   // Jump to the address stored on the register reg[RS]
@@ -1051,7 +1108,7 @@ void ac_behavior( jalr )
   t.rt = -1;
   t.rs = rs;
   t.rd = rd;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("jalr r%d, r%d\n", rd, rs);
   // Save the value of PC + 8(return address) in rd and
@@ -1071,157 +1128,181 @@ void ac_behavior( jalr )
 //!Instruction beq behavior method.
 void ac_behavior( beq )
 {
+  
+  
+  dbg_printf("beq r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
+  if( RB[rs] == RB[rt] ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }
+  else taken = 0;
+  
   Instrucao t;
   t.instrucao = ibeq;
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("beq r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
-  if( RB[rs] == RB[rt] ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  Put(t);
 };
 
 //!Instruction bne behavior method.
 void ac_behavior( bne )
 {	
+  
+  
+  dbg_printf("bne r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
+  if( RB[rs] != RB[rt] ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }	
+  else taken = 0;
+  
   Instrucao t;
   t.instrucao = ibne;
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("bne r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
-  if( RB[rs] != RB[rt] ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  Put(t);
 };
 
 //!Instruction blez behavior method.
 void ac_behavior( blez )
 {
-  Instrucao t;
-  t.instrucao = iblez;
-  t.rt = -1;
-  t.rs = rs;
-  t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
   dbg_printf("blez r%d, %d\n", rs, imm & 0xFFFF);
   if( (RB[rs] == 0 ) || (RB[rs]&0x80000000 ) ){
+    taken = 1;
 #ifndef NO_NEED_PC_UPDATE
     npc = ac_pc + (imm<<2), 1;
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
   }	
+  else taken = 0;
+  
+  Instrucao t;
+  t.instrucao = iblez;
+  t.rt = -1;
+  t.rs = rs;
+  t.rd = -1;
+  Put(t);
 };
 
 //!Instruction bgtz behavior method.
 void ac_behavior( bgtz )
-{
+{ 
+  dbg_printf("bgtz r%d, %d\n", rs, imm & 0xFFFF);
+  if( !(RB[rs] & 0x80000000) && (RB[rs]!=0) ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }	
+  else taken = 0;
+  
   Instrucao t;
   t.instrucao = ibgtz;
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("bgtz r%d, %d\n", rs, imm & 0xFFFF);
-  if( !(RB[rs] & 0x80000000) && (RB[rs]!=0) ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  Put(t);
 };
 
 //!Instruction bltz behavior method.
 void ac_behavior( bltz )
-{
+{ 
+  dbg_printf("bltz r%d, %d\n", rs, imm & 0xFFFF);
+  if( RB[rs] & 0x80000000 ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }
+  else taken = 0;
+  
   Instrucao t;
   t.instrucao = ibltz;
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
-  dbg_printf("bltz r%d, %d\n", rs, imm & 0xFFFF);
-  if( RB[rs] & 0x80000000 ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
 };
 
 //!Instruction bgez behavior method.
 void ac_behavior( bgez )
 {
+  
+  
+  dbg_printf("bgez r%d, %d\n", rs, imm & 0xFFFF);
+  if( !(RB[rs] & 0x80000000) ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }	else taken = 0;
+  
   Instrucao t;
   t.instrucao = ibgez;
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("bgez r%d, %d\n", rs, imm & 0xFFFF);
-  if( !(RB[rs] & 0x80000000) ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  Put(t);
 };
 
 //!Instruction bltzal behavior method.
 void ac_behavior( bltzal )
 {
+  
+  
+  dbg_printf("bltzal r%d, %d\n", rs, imm & 0xFFFF);
+  RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
+  if( RB[rs] & 0x80000000 ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }	else taken = 0;
+  dbg_printf("Return = %#x\n", ac_pc+4);
+  
   Instrucao t;
   t.instrucao = ibltzal;
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("bltzal r%d, %d\n", rs, imm & 0xFFFF);
-  RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
-  if( RB[rs] & 0x80000000 ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
-  dbg_printf("Return = %#x\n", ac_pc+4);
+  Put(t);
 };
 
 //!Instruction bgezal behavior method.
 void ac_behavior( bgezal )
 {
+  
+  
+  dbg_printf("bgezal r%d, %d\n", rs, imm & 0xFFFF);
+  RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
+  if( !(RB[rs] & 0x80000000) ){
+    taken = 1;
+#ifndef NO_NEED_PC_UPDATE
+    npc = ac_pc + (imm<<2);
+#endif 
+    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+  }	else taken = 0;
+  dbg_printf("Return = %#x\n", ac_pc+4);
+  
   Instrucao t;
   t.instrucao = ibgezal;
   t.rt = -1;
   t.rs = rs;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
-  
-  dbg_printf("bgezal r%d, %d\n", rs, imm & 0xFFFF);
-  RB[Ra] = ac_pc+4; //ac_pc is pc+4, we need pc+8
-  if( !(RB[rs] & 0x80000000) ){
-#ifndef NO_NEED_PC_UPDATE
-    npc = ac_pc + (imm<<2);
-#endif 
-    dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
-  dbg_printf("Return = %#x\n", ac_pc+4);
+  Put(t);
 };
 
 //!Instruction sys_call behavior method.
@@ -1232,7 +1313,7 @@ void ac_behavior( sys_call )
   t.rt = -1;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   dbg_printf("syscall\n");
   stop();
@@ -1246,7 +1327,7 @@ void ac_behavior( instr_break )
   t.rt = -1;
   t.rs = -1;
   t.rd = -1;
-  Put(hist,N_STAGES,t);
+  Put(t);
   
   fprintf(stderr, "instr_break behavior not implemented.\n"); 
   exit(EXIT_FAILURE);
