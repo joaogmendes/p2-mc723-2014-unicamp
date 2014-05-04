@@ -158,9 +158,6 @@ void ac_behavior( instruction )
   ac_pc = npc;
   npc = ac_pc + 4;
 #endif
-  t.
-  Put(hist, N_STAGES, t)
-  
 };
  
 //! Instruction Format behavior methods.
