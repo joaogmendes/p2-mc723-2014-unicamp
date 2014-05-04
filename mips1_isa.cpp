@@ -197,7 +197,7 @@ void ac_behavior( lb )
   char byte;
   
   Instrucao t;
-  t.instrucao = lb;
+  t.instrucao = ilb;
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
@@ -215,7 +215,7 @@ void ac_behavior( lbu )
   unsigned char byte;
   
   Instrucao t;
-  t.instrucao = lbu;
+  t.instrucao = ilbu;
   t.rt = rt;
   t.rs = rs;
   t.rd = -1;
