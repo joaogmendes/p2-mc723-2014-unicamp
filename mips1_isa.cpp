@@ -82,7 +82,7 @@ int historicoPredictor;
 int taken;
 
 /* Snapshot do Pipeline */
-Instrucao hist[];
+Instrucao* hist;
 
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
 void Put(Instrucao novaInstrucao){
