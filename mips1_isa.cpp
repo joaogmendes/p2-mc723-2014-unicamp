@@ -244,10 +244,10 @@ void ac_behavior(begin)
   scanf("%d",&N_STAGES);
   printf("Bits do Branch Prediction: ");
   scanf("%d",&aux);
-  if(aux=2) BR_PR = 0;
+  if(aux==2) BR_PR = 0;
   else BR_PR = 1;
   
-  hist = malloc(N_STAGES * sizeof(Instrucao));
+  hist = (Instrucao *)malloc(N_STAGES * sizeof(Instrucao));
   ciclos = N_STAGES-1;
   bolhas = 0;
   historicoPredictor = 0;
