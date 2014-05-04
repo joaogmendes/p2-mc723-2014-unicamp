@@ -43,6 +43,9 @@
 //#define DEBUG_MODEL
 #include "ac_debug_model.H"
 
+int TestaControlHazard();
+void Empty();
+
 typedef enum{
 	iempty, ilb, ilbu, ilh, ilhu, ilw, ilwl, ilwr, isb, ish, isw, iswl, iswr, iaddi, iaddiu, islti, isltiu, iandi, iori, ixori, ilui, iadd, iaddu, isub, isubu, islt, isltu, iinstr_and, iinstr_or, iinstr_xor, iinstr_nor, inop, isll, isrl, isra, isllv, isrlv, israv, imult, imultu, idiv, idivu, imfhi, imthi, imflo, imtlo, ij, ijal, ijr, ijalr, ibeq, ibne, iblez, ibgtz, ibltz, ibgez, ibltzal, ibgezal, isys_call, iinstr_break
 }TipoInstrucao;
@@ -101,10 +104,10 @@ ciclos a mais (bolha) ou nao */
 int TestaControlHazard(){
 
 	/*se for algum Jump */
-	if (hist[0] >= ij && hist[0] <= ijalr) return N_STAGES-2;
+	if (hist[0].instrucao >= ij && hist[0].instrucao <= ijalr) return N_STAGES-2;
 	
 	/*se for algum branch */
-	if(hist[0] >= ibeq && hist[0] <= ibgezal) {
+	if(hist[0].instrucao >= ibeq && hist[0].instrucao <= ibgezal) {
 		/*se predictor for de 1 bit */
 		if (BR_PR) {
 			/* se predictor acertou, eh apenas mais um ciclo*/
@@ -117,6 +120,7 @@ int TestaControlHazard(){
 				bolhas += N_STAGES;
 				return N_STAGES;
 			}
+		}
 		/* se predictor for de 2 bits */
 		else {
 			if(taken && (historicoPredictor == 2 || historicoPredictor == 3)) {
