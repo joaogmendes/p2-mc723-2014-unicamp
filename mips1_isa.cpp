@@ -95,7 +95,7 @@ Instrucao* hist;
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
 /* Tambem verifica hazards e outras otimizacoes, atualizando os contadores */
 void Put(Instrucao novaInstrucao){
-	int i = 0,aux1, aux2;
+	int i = 0,aux2;
 	for (i = 0; i < N_STAGES-1; i++){
 		hist[i + 1] = hist[i];
 	}
@@ -103,12 +103,13 @@ void Put(Instrucao novaInstrucao){
 	hist[0].type = InsType;
 	/* TestaControlHazard() apenas se for jump ou branch - afeta instrucoes futuras */
 	if(hist[0].instrucao >= ij && hist[0].instrucao <= ibgezal) {
-		aux1 = TestaControlHazard();
+		ciclos += TestaControlHazard();
 	}
 	/* verifica se houve economia de ciclo com SuperScalar - afeta instrucao passada */
 	/* verifica tambem os data hazards - depende se for superscalar ou nao */
-	aux2 = TestaDataHazard();
-	ciclos += aux1 + aux2 + 1;
+	ciclos += TestaDataHazard();
+	/* soma ciclos das bolhas geradas, e 1 ciclo da propria instrucao */
+	ciclos ++;
 }
 
 /* retorna true se houver data hazard */
@@ -144,6 +145,7 @@ void addbolhas(int n) {
 		hist[i].rt = -1;
 		hist[i].instrucao = iempty;
 	}
+	bolhas += n;
 	return;
 }
 
@@ -167,6 +169,7 @@ int TestaDataHazard() {
 				/*verifica se rd das duas instrucoes anteriores sao	rt ou rs da atual */
 				if(dependencia(hist[0],hist[1])) { addbolhas(2); return 2; }
 				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
+				break;
 			}
 			case 7: {
 			    /*Instruction Fetch tem um estagio a mais, e MEM tambem tem. Eh preciso 
@@ -174,6 +177,7 @@ int TestaDataHazard() {
 				if(dependencia(hist[0],hist[1])) { addbolhas(3); return 3; }
 				else if(dependencia(hist[0],hist[2])) { addbolhas(2); return 2; }
 				else if(dependencia(hist[0],hist[3])) { addbolhas(1); return 1; }
+				break;
 			}
 			case 13: {
 				/*Instruction Fetch:2 estagios, ID: 5 estagios, REG acessado no estagio 8
@@ -183,10 +187,10 @@ int TestaDataHazard() {
 				 if(dependencia(hist[0],hist[3])) { addbolhas(3); return 3; }
 				 if(dependencia(hist[0],hist[4])) { addbolhas(2); return 2; }
 				 if(dependencia(hist[0],hist[5])) { addbolhas(1); return 1; }
+				 break;
 			}
 		}
 	}
-	printf("Erro no TestaDataHazard()!\n");
 	return 0;
 }
 
@@ -313,10 +317,11 @@ void ac_behavior(begin)
   scanf("%d",&N_STAGES);
   printf("Bits do Branch Prediction: ");
   scanf("%d",&aux);
+  getchar();
   if(aux==2) BR_PR = 0;
   else BR_PR = 1;
   printf("Superscalar? (s/n) :");
-  scanf("%c",c);
+  scanf(" %c",&c);
   if(toupper(c) == 'S') SUPERSCALAR = 1;
   else SUPERSCALAR = 0;
   
@@ -330,9 +335,16 @@ void ac_behavior(begin)
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
+  int bits;
+  
   dbg_printf("@@@ end behavior @@@\n");
   printf("Ciclos: %d\nBolhas: %d\n",ciclos,bolhas);
   printf("Configuracao:\n   Estagios de Pipeline: %d\n",N_STAGES);
+  if(BR_PR) bits=1;
+  else bits=2;
+  printf("   Branch Predictor: %d bits\n",bits);
+  if(SUPERSCALAR) printf("   Superscalar Architecture\n");
+  else printf("   Scalar Architecture\n");
 }
 
 
