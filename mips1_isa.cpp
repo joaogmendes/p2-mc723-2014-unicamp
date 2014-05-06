@@ -47,6 +47,7 @@
 int TestaDataHazard();
 int TestaControlHazard();
 void Empty();
+void addbolhas(int n);
 
 typedef enum{
 	iempty, ilb, ilbu, ilh, ilhu, ilw, ilwl, ilwr, isb, ish, isw, iswl, iswr, iaddi, iaddiu, islti, isltiu, iandi, iori, ixori, ilui, iadd, iaddu, isub, isubu, islt, isltu, iinstr_and, iinstr_or, iinstr_xor, iinstr_nor, inop, isll, isrl, isra, isllv, isrlv, israv, imult, imultu, idiv, idivu, imfhi, imthi, imflo, imtlo, ij, ijal, ijr, ijalr, ibeq, ibne, iblez, ibgtz, ibltz, ibgez, ibltzal, ibgezal, isys_call, iinstr_break
@@ -57,7 +58,10 @@ typedef struct{
 	int rs;
 	int rt;
 	int rd;
+	/*I, J, R */
 	char type;
+	/*para Superscalar*/
+	int paralelo;
 }Instrucao;
 
 //!User defined macros to reference registers.
@@ -67,6 +71,8 @@ typedef struct{
 
 
 /* Defines sobre o modelo */
+#define MEM_LATENCY 15
+
 /* estagios do pipeline */
 int N_STAGES;
 /* bits do branch predictor (1 = 1 bit, 0 = 2 bits) */
@@ -101,6 +107,7 @@ void Put(Instrucao novaInstrucao){
 	}
 	hist[0] = novaInstrucao;
 	hist[0].type = InsType;
+	hist[0].paralelo = 0;
 	/* TestaControlHazard() apenas se for jump ou branch - afeta instrucoes futuras */
 	if(hist[0].instrucao >= ij && hist[0].instrucao <= ibgezal) {
 		ciclos += TestaControlHazard();
@@ -110,6 +117,12 @@ void Put(Instrucao novaInstrucao){
 	ciclos += TestaDataHazard();
 	/* soma ciclos das bolhas geradas, e 1 ciclo da propria instrucao */
 	ciclos ++;
+	
+	/*se for uma instrucao de acesso a memoria, soma tambem a latencia de memoria */
+	ciclos += MEM_LATENCY;
+	/* como latencia eh maior que pipeline, sempre, entao eh possivel esvaziar pipeline
+	   a frente de qualquer instrucao de memoria*/
+	addbolhas(N_STAGES-1);
 }
 
 /* retorna true se houver data hazard */
@@ -138,7 +151,7 @@ void addbolhas(int n) {
 	for(i=N_STAGES-1;i>n;i--) {
 		hist[i] = hist[i-n];
 	}
-	for(i=1;i<n;i++) {
+	for(i=1;i<=n;i++) {
 		hist[i].type = 'X';
 		hist[i].rd = -1;
 		hist[i].rs = -1;
@@ -149,16 +162,69 @@ void addbolhas(int n) {
 	return;
 }
 
+int paralelizavel(Instrucao t1, Instrucao t2) {
+	if( (t1.type=='R' && t2.type=='I')||(t1.type=='I' && t2.type == 'R')) {
+		if(dependencia(t1,t2) || t2.paralelo) return false;
+		else return true;
+	}else return false;
+}
+
 int TestaDataHazard() {
-	if(false) {
+	if(SUPERSCALAR) {
 		switch(N_STAGES) {
 			case 5: {
-				
+				if(paralelizavel(hist[0],hist[1]) && !dependencia(hist[0],hist[2]) &&
+													 !dependencia(hist[0],hist[3])) {
+					hist[0].paralelo = 1;
+					hist[1].paralelo = 1;
+					return -1;
+				} 
+				else if(dependencia(hist[0],hist[1])) { addbolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
+				/*verifica se a terceira instrucao foi paralela. se sim. eh preciso
+				  checar dependencia com quarta instrucao */
+				else if(hist[2].paralelo && dependencia(hist[0],hist[3])) { addbolhas(1); return 1;}
+				break;
 			}
 			case 7: {
+				if(paralelizavel(hist[0],hist[1]) && !dependencia(hist[0],hist[2]) &&
+													 !dependencia(hist[0],hist[3]) &&
+													 !dependencia(hist[0],hist[4])) {
+					hist[0].paralelo = 1;
+					hist[1].paralelo = 1;
+					return -1;
+				} 
+				else if(dependencia(hist[0],hist[1])) 						{ addbolhas(3); return 3; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[2]))	{ addbolhas(3); return 3; }
+				else if(dependencia(hist[0],hist[2])) 						{ addbolhas(2); return 2; }
+				else if(hist[2].paralelo && dependencia(hist[0],hist[3])) 	{ addbolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[3])) 						{ addbolhas(1); return 1; }
+				else if(hist[3].paralelo && dependencia(hist[0],hist[4]))	{ addbolhas(1); return 1; }
+				break;
 			
 			}
 			case 13: {
+				if(paralelizavel(hist[0],hist[1]) && !dependencia(hist[0],hist[2]) &&
+													 !dependencia(hist[0],hist[3]) &&
+													 !dependencia(hist[0],hist[4]) &&
+													 !dependencia(hist[0],hist[5]) &&
+													 !dependencia(hist[0],hist[6])) {
+					hist[0].paralelo = 1;
+					hist[1].paralelo = 1;
+					return -1;
+				} 
+				
+				if(dependencia(hist[0],hist[1])) 							{ addbolhas(5); return 5; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[2])) 	{ addbolhas(5); return 5; }
+				else if(dependencia(hist[0],hist[2])) 						{ addbolhas(4); return 4; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[3])) 	{ addbolhas(4); return 4; }
+				else if(dependencia(hist[0],hist[3])) 						{ addbolhas(3); return 3; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[4])) 	{ addbolhas(3); return 3; }
+				else if(dependencia(hist[0],hist[4]))						{ addbolhas(2); return 2; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[5])) 	{ addbolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[5])) 						{ addbolhas(1); return 1; }
+				else if(hist[1].paralelo && dependencia(hist[0],hist[6])) 	{ addbolhas(1); return 1; }
+				break;
 			
 			}
 		}
@@ -167,14 +233,14 @@ int TestaDataHazard() {
 		switch(N_STAGES) {
 			case 5: {
 				/*verifica se rd das duas instrucoes anteriores sao	rt ou rs da atual */
-				if(dependencia(hist[0],hist[1])) { addbolhas(2); return 2; }
+				if(dependencia(hist[0],hist[1]))      { addbolhas(2); return 2; }
 				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
 				break;
 			}
 			case 7: {
 			    /*Instruction Fetch tem um estagio a mais, e MEM tambem tem. Eh preciso 
 			      checar 3 instrucoes anteriores */
-				if(dependencia(hist[0],hist[1])) { addbolhas(3); return 3; }
+				if(dependencia(hist[0],hist[1]))      { addbolhas(3); return 3; }
 				else if(dependencia(hist[0],hist[2])) { addbolhas(2); return 2; }
 				else if(dependencia(hist[0],hist[3])) { addbolhas(1); return 1; }
 				break;
