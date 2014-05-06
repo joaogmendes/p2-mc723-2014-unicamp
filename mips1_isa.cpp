@@ -44,6 +44,7 @@
 //#define DEBUG_MODEL
 #include "ac_debug_model.H"
 
+int TestaDataHazard();
 int TestaControlHazard();
 void Empty();
 
@@ -71,7 +72,7 @@ int N_STAGES;
 /* bits do branch predictor (1 = 1 bit, 0 = 2 bits) */
 int BR_PR;
 /* Superscalar? 1 = Sim, 0 = Nao */
-int SUPERSCALAR
+int SUPERSCALAR;
 
 /* Variaveis globais*/
 /* contadores */
@@ -130,7 +131,7 @@ int dependencia(Instrucao t1, Instrucao t2) {
 
 /* insere n bolhas na frente da instrucao na primeira posicao do vetor historico */
 /* para esvaziar o pipeline (n == N_STAGES), usar Empty() */
-void bolhas(int n) {
+void addbolhas(int n) {
 	int i;
 	
 	for(i=N_STAGES-1;i>n;i--) {
@@ -164,24 +165,24 @@ int TestaDataHazard() {
 		switch(N_STAGES) {
 			case 5: {
 				/*verifica se rd das duas instrucoes anteriores sao	rt ou rs da atual */
-				if(dependencia(hist[0],hist[1])) { bolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[2])) { bolhas(1); return 1; }
+				if(dependencia(hist[0],hist[1])) { addbolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
 			}
 			case 7: {
 			    /*Instruction Fetch tem um estagio a mais, e MEM tambem tem. Eh preciso 
 			      checar 3 instrucoes anteriores */
-				if(dependencia(hist[0],hist[1])) { bolhas(3); return 3; }
-				else if(dependencia(hist[0],hist[2])) { bolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[3])) { bolhas(1); return 1; }
+				if(dependencia(hist[0],hist[1])) { addbolhas(3); return 3; }
+				else if(dependencia(hist[0],hist[2])) { addbolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[3])) { addbolhas(1); return 1; }
 			}
 			case 13: {
 				/*Instruction Fetch:2 estagios, ID: 5 estagios, REG acessado no estagio 8
 				 e escrito no estagio 13 */
-				 if(dependencia(hist[0],hist[1])) { bolhas(5); return 5; }
-				 if(dependencia(hist[0],hist[2])) { bolhas(4); return 4; }
-				 if(dependencia(hist[0],hist[3])) { bolhas(3); return 3; }
-				 if(dependencia(hist[0],hist[4])) { bolhas(2); return 2; }
-				 if(dependencia(hist[0],hist[5])) { bolhas(1); return 1; }
+				 if(dependencia(hist[0],hist[1])) { addbolhas(5); return 5; }
+				 if(dependencia(hist[0],hist[2])) { addbolhas(4); return 4; }
+				 if(dependencia(hist[0],hist[3])) { addbolhas(3); return 3; }
+				 if(dependencia(hist[0],hist[4])) { addbolhas(2); return 2; }
+				 if(dependencia(hist[0],hist[5])) { addbolhas(1); return 1; }
 			}
 		}
 	}
