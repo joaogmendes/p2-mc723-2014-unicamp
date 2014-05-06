@@ -37,6 +37,7 @@
 #include  "mips1_isa.H"
 #include  "mips1_isa_init.cpp"
 #include  "mips1_bhv_macros.H"
+#include <ctype.h>
 
 
 //If you want debug information for this model, uncomment next line
@@ -55,6 +56,7 @@ typedef struct{
 	int rs;
 	int rt;
 	int rd;
+	char type;
 }Instrucao;
 
 //!User defined macros to reference registers.
@@ -68,6 +70,8 @@ typedef struct{
 int N_STAGES;
 /* bits do branch predictor (1 = 1 bit, 0 = 2 bits) */
 int BR_PR;
+/* Superscalar? 1 = Sim, 0 = Nao */
+int SUPERSCALAR
 
 /* Variaveis globais*/
 /* contadores */
@@ -81,42 +85,133 @@ int historicoPredictor;
 /* referencia: 1 se branch foi realizado. 0 caso contrario */
 int taken;
 
+/*tipo de instrucao - R, I ou J */
+char InsType;
+
 /* Snapshot do Pipeline */
 Instrucao* hist;
 
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
 /* Tambem verifica hazards e outras otimizacoes, atualizando os contadores */
 void Put(Instrucao novaInstrucao){
-	int i = 0;
+	int i = 0,aux1, aux2;
 	for (i = 0; i < N_STAGES-1; i++){
 		hist[i + 1] = hist[i];
 	}
 	hist[0] = novaInstrucao;
-	/* TestaControlHazard() apenas se for jump ou branch */
+	hist[0].type = InsType;
+	/* TestaControlHazard() apenas se for jump ou branch - afeta instrucoes futuras */
 	if(hist[0].instrucao >= ij && hist[0].instrucao <= ibgezal) {
-		ciclos += TestaControlHazard();
-	} else ciclos++;
+		aux1 = TestaControlHazard();
+	}
+	/* verifica se houve economia de ciclo com SuperScalar - afeta instrucao passada */
+	/* verifica tambem os data hazards - depende se for superscalar ou nao */
+	aux2 = TestaDataHazard();
+	ciclos += aux1 + aux2 + 1;
 }
 
+/* retorna true se houver data hazard */
+int dependencia(Instrucao t1, Instrucao t2) {
+	if(t2.type == 'X') return false;
+	if(t1.type == 'R') {
+		if(t2.type == 'R') 
+			return (t2.rd == t1.rs || t2.rd == t1.rt);
+		else if(t2.type == 'I')
+			return (t2.rt == t1.rs || t2.rt == t1.rt);
+	} else if(t1.type == 'I' || t1.type == 'J') {
+		if(t2.type == 'I')
+			return (t1.rs == t2.rt);
+		else if(t2.type == 'R')
+			return (t1.rs == t2.rd);
+	}
+	printf("Erro na checagem de dependencia!\n");
+	return false;
+}
+
+/* insere n bolhas na frente da instrucao na primeira posicao do vetor historico */
+/* para esvaziar o pipeline (n == N_STAGES), usar Empty() */
+void bolhas(int n) {
+	int i;
+	
+	for(i=N_STAGES-1;i>n;i--) {
+		hist[i] = hist[i-n];
+	}
+	for(i=1;i<n;i++) {
+		hist[i].type = 'X';
+		hist[i].rd = -1;
+		hist[i].rs = -1;
+		hist[i].rt = -1;
+		hist[i].instrucao = iempty;
+	}
+	return;
+}
+
+int TestaDataHazard() {
+	if(false) {
+		switch(N_STAGES) {
+			case 5: {
+				
+			}
+			case 7: {
+			
+			}
+			case 13: {
+			
+			}
+		}
+	}
+	else {
+		switch(N_STAGES) {
+			case 5: {
+				/*verifica se rd das duas instrucoes anteriores sao	rt ou rs da atual */
+				if(dependencia(hist[0],hist[1])) { bolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[2])) { bolhas(1); return 1; }
+			}
+			case 7: {
+			    /*Instruction Fetch tem um estagio a mais, e MEM tambem tem. Eh preciso 
+			      checar 3 instrucoes anteriores */
+				if(dependencia(hist[0],hist[1])) { bolhas(3); return 3; }
+				else if(dependencia(hist[0],hist[2])) { bolhas(2); return 2; }
+				else if(dependencia(hist[0],hist[3])) { bolhas(1); return 1; }
+			}
+			case 13: {
+				/*Instruction Fetch:2 estagios, ID: 5 estagios, REG acessado no estagio 8
+				 e escrito no estagio 13 */
+				 if(dependencia(hist[0],hist[1])) { bolhas(5); return 5; }
+				 if(dependencia(hist[0],hist[2])) { bolhas(4); return 4; }
+				 if(dependencia(hist[0],hist[3])) { bolhas(3); return 3; }
+				 if(dependencia(hist[0],hist[4])) { bolhas(2); return 2; }
+				 if(dependencia(hist[0],hist[5])) { bolhas(1); return 1; }
+			}
+		}
+	}
+	printf("Erro no TestaDataHazard()!\n");
+	return 0;
+}
 
 /* Verifica o status do branch predictor e se houve ou não o branch, e computa
-ciclos a mais (bolha) ou nao */
+ciclos a mais (bolha) ou nao. Se nao houve bolha, retorna 0 */
 int TestaControlHazard(){
 
-	/*se for algum Jump */
-	if (hist[0].instrucao >= ij && hist[0].instrucao <= ijalr) return N_STAGES-2;
+	/* se for algum Jump, bolhas geradas sao os estagios anteriores a MEM, que eh
+	   quando o PC eh atualizado */
+	if (hist[0].instrucao >= ij && hist[0].instrucao <= ijalr) {
+		Empty();
+		bolhas += N_STAGES-2;
+		return N_STAGES-2;
+	}
 	
 	/*se for algum branch */
 	if(hist[0].instrucao >= ibeq && hist[0].instrucao <= ibgezal) {
 		/*se predictor for de 1 bit */
 		if (BR_PR) {
-			/* se predictor acertou, eh apenas mais um ciclo*/
-			if(taken == historicoPredictor) return 1;
+			/* se predictor acertou, nao ha bolhas extras*/
+			if(taken == historicoPredictor) return 0;
 			/*se errou, tem que inserir bolhas e atualizar bit historico*/
 			else {
 				Empty();
 				historicoPredictor = taken;
-				/* +1 ciclo (execucao do branch), +N_STAGES-1 (encher pipeline novamente) */
+				/* N_STAGES (encher pipeline novamente) */
 				bolhas += N_STAGES;
 				return N_STAGES;
 			}
@@ -125,30 +220,34 @@ int TestaControlHazard(){
 		else {
 			if(taken && (historicoPredictor == 2 || historicoPredictor == 3)) {
 				historicoPredictor = 3;
-				return 1;
+				return 0;
 			}
 			else if(taken && historicoPredictor) {
 				historicoPredictor = 3;
 				bolhas += N_STAGES;
+				Empty();
 				return N_STAGES;
 			}
 			else if(taken && !historicoPredictor) {
 				historicoPredictor = 1;
 				bolhas += N_STAGES;
+				Empty();
 				return N_STAGES;
 			}
 			else if(!taken && (historicoPredictor == 0 || historicoPredictor == 1)) {
 				historicoPredictor = 0;
-				return 1;
+				return 0;
 			}
 			else if(!taken && historicoPredictor == 3) {
 				historicoPredictor = 2;
 				bolhas += N_STAGES;
+				Empty();
 				return N_STAGES;
 			}
 			else if(!taken && historicoPredictor == 2) {
 				historicoPredictor = 0;
 				bolhas += N_STAGES;
+				Empty();
 				return N_STAGES;
 			}
 		}
@@ -168,43 +267,10 @@ void Empty()
 		hist[i].rs = -1;
 		hist[i].rt = -1;
 		hist[i].rd = -1;
+		hist[i].type = 'X';
 	}
 	return;
 }
-
-/*Funcao que testa se deu hazard de dados (Load e Store) e retorna o numero de bolhas criadas (Se return 0 bolhas entao n houve hazard).
-"int num_max_de_bolhas" recebe a constante de maior numero de bolhas possivel, q eh dependente do tamanho da pipeline.
-*/
-int TesteDataHazard(Instrucao intr_atual, Instrucao* vetor_hist, int tamanho_hist, int num_max_de_bolhas)
-{
-	int num_bolhas = num_max_de_bolhas, i;
-
-	for (i = 0; i<tamanho_hist; i++)
-		/*If q verifica no historico o Load ou Store mais recente*/
-		if (vetor_hist[i].instrucao >= ilb && vetor_hist[i].instrucao <= iswr)
-			/*If q verifica se realmente houve conflito de dependencia entre os dados*/
-			if (vetor_hist[i].rd == intr_atual.rt || vetor_hist[i].rd == intr_atual.rs)
-			{
-				/*Verifica se o conflito foi gerado por um Load, caso sim, devemos remove-lo do historico*/
-				if (vetor_hist[i].instrucao >= ilb && vetor_hist[i].instrucao <= ilwr)
-				{
-					vetor_hist[i].instrucao = iempty;
-					vetor_hist[i].rs = -1;
-					vetor_hist[i].rt = -1;
-					vetor_hist[i].rd = -1;
-				}
-				break;
-			}
-
-
-	num_bolhas = -i;
-	if (num_max_de_bolhas > 0)
-		return num_bolhas;
-	else
-		return 0;
-}
-
-
 
 
 // 'using namespace' statement to allow access to all
@@ -223,9 +289,9 @@ void ac_behavior( instruction )
 };
  
 //! Instruction Format behavior methods.
-void ac_behavior( Type_R ){}
-void ac_behavior( Type_I ){}
-void ac_behavior( Type_J ){}
+void ac_behavior( Type_R ){ InsType = 'R'; }
+void ac_behavior( Type_I ){ InsType = 'I'; }
+void ac_behavior( Type_J ){ InsType = 'J'; }
  
 //!Behavior called before starting simulation
 void ac_behavior(begin)
@@ -241,14 +307,20 @@ void ac_behavior(begin)
   lo = 0;
   
   int aux;
+  char c;
   printf("Numero de estagios do pipeline: ");
   scanf("%d",&N_STAGES);
   printf("Bits do Branch Prediction: ");
   scanf("%d",&aux);
   if(aux==2) BR_PR = 0;
   else BR_PR = 1;
+  printf("Superscalar? (s/n) :");
+  scanf("%c",c);
+  if(toupper(c) == 'S') SUPERSCALAR = 1;
+  else SUPERSCALAR = 0;
   
   hist = (Instrucao *)malloc(N_STAGES * sizeof(Instrucao));
+  Empty();
   ciclos = N_STAGES-1;
   bolhas = 0;
   historicoPredictor = 0;
