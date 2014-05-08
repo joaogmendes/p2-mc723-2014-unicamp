@@ -82,12 +82,13 @@ int SUPERSCALAR;
 
 /* Variaveis globais*/
 /* contadores */
-int ciclos;
-int bolhas;
-int dataHazards = 0;
-int controlHazards = 0;
-int branchMissPredictions = 0;
-int instNaoParalelizaveis = 0;
+long long unsigned int instrucoes = 0;
+long long unsigned int ciclos;
+long long unsigned int bolhas;
+long long unsigned int dataHazards = 0;
+long long unsigned int controlHazards = 0;
+long long unsigned int branchMissPredictions = 0;
+long long unsigned int instNaoParalelizaveis = 0;
 
 
 /* 'bit' do branch predictor: */
@@ -106,6 +107,7 @@ Instrucao* hist;
 /* Acrescenta nova instrucao,e respectivos registradores, no vetor hist[] */
 /* Tambem verifica hazards e outras otimizacoes, atualizando os contadores */
 void Put(Instrucao novaInstrucao){
+	instrucoes++;
 	int i = 0,aux2;
 	for (i = 0; i < N_STAGES-1; i++){
 		hist[i + 1] = hist[i];
@@ -432,19 +434,20 @@ void ac_behavior(end)
   int bits;
   
   dbg_printf("@@@ end behavior @@@\n");
-  printf("Ciclos: %d\nBolhas: %d\n",ciclos,bolhas);
+  printf("Ciclos: %llu\nBolhas: %llu\n",ciclos,bolhas);
   printf("Configuracao:\n   Estagios de Pipeline: %d\n",N_STAGES);
   if(BR_PR) bits=1;
   else bits=2;
   printf("   Branch Predictor: %d bits\n",bits);
   if (SUPERSCALAR){
 	  printf("Superscalar Architecture\n");
-	  printf("Failed parallelization attempts: %d\n", instNaoParalelizaveis);
+	  printf("Failed parallelization attempts: %llu\n", instNaoParalelizaveis);
   }
   else printf("   Scalar Architecture\n");
-  printf("Data Hazards: %d\n", dataHazards);
-  printf("Control Hazards: %d\n", controlHazards);
-  printf("Branch misspredictions: %d\n", branchMissPredictions);
+  printf("Data Hazards: %llu\n", dataHazards);
+  printf("Control Hazards: %llu\n", controlHazards);
+  printf("Branch misspredictions: %llu\n", branchMissPredictions);
+  printf("Total de instrucoes: %llu\n", instrucoes);
   
 }
 
