@@ -119,10 +119,15 @@ void Put(Instrucao novaInstrucao){
 	ciclos ++;
 	
 	/*se for uma instrucao de acesso a memoria, soma tambem a latencia de memoria */
-	ciclos += MEM_LATENCY;
-	/* como latencia eh maior que pipeline, sempre, entao eh possivel esvaziar pipeline
+	if(hist[0].instrucao >= ilb && hist[0].instrucao <= iswr) {
+		ciclos += MEM_LATENCY;
+		/* como latencia eh maior que pipeline, sempre, entao eh possivel esvaziar pipeline
 	   a frente de qualquer instrucao de memoria*/
-	addbolhas(N_STAGES-1);
+		addbolhas(N_STAGES-1);
+		/* Aqui, nao eh necessario contabilizar as bolhas. Como addbolhas acrescenta
+		o contador, basta subtrai-lo em seguida */
+		bolhas -= N_STAGES-1;
+	}
 }
 
 /* retorna true se houver data hazard */
