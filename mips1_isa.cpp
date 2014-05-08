@@ -84,6 +84,11 @@ int SUPERSCALAR;
 /* contadores */
 int ciclos;
 int bolhas;
+int dataHazards = 0;
+int controlHazards = 0;
+int branchMissPredictions = 0;
+int instNaoParalelizaveis = 0;
+
 
 /* 'bit' do branch predictor: */
 /* se for 1bit: 0: not taken, 1: taken */
@@ -164,8 +169,11 @@ void addbolhas(int n) {
 
 int paralelizavel(Instrucao t1, Instrucao t2) {
 	if( (t1.type=='R' && t2.type=='I')||(t1.type=='I' && t2.type == 'R')) {
-		if(dependencia(t1,t2) || t2.paralelo) return false;
-		else return true;
+		if (dependencia(t1, t2) || t2.paralelo) {
+			instNaoParalelizaveis++;
+			return false;
+		}
+		else { return true; }
 	}else return false;
 }
 
@@ -179,8 +187,8 @@ int TestaDataHazard() {
 					hist[1].paralelo = 1;
 					return -1;
 				} 
-				else if(dependencia(hist[0],hist[1])) { addbolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
+				else if (dependencia(hist[0], hist[1])) { addbolhas(2); dataHazards++; return 2; }
+				else if (dependencia(hist[0], hist[2])) { addbolhas(1); dataHazards++; dataHazards++; return 1; }
 				/*verifica se a terceira instrucao foi paralela. se sim. eh preciso
 				  checar dependencia com quarta instrucao */
 				else if(hist[2].paralelo && dependencia(hist[0],hist[3])) { addbolhas(1); return 1;}
@@ -194,12 +202,12 @@ int TestaDataHazard() {
 					hist[1].paralelo = 1;
 					return -1;
 				} 
-				else if(dependencia(hist[0],hist[1])) 						{ addbolhas(3); return 3; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[2]))	{ addbolhas(3); return 3; }
-				else if(dependencia(hist[0],hist[2])) 						{ addbolhas(2); return 2; }
-				else if(hist[2].paralelo && dependencia(hist[0],hist[3])) 	{ addbolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[3])) 						{ addbolhas(1); return 1; }
-				else if(hist[3].paralelo && dependencia(hist[0],hist[4]))	{ addbolhas(1); return 1; }
+				else if (dependencia(hist[0], hist[1])) 						{ addbolhas(3); dataHazards++; return 3; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[2]))		{ addbolhas(3); dataHazards++; return 3; }
+				else if (dependencia(hist[0], hist[2])) 						{ addbolhas(2); dataHazards++; return 2; }
+				else if (hist[2].paralelo && dependencia(hist[0], hist[3])) 	{ addbolhas(2); dataHazards++; return 2; }
+				else if (dependencia(hist[0], hist[3])) 						{ addbolhas(1); dataHazards++; return 1; }
+				else if (hist[3].paralelo && dependencia(hist[0], hist[4]))		{ addbolhas(1); dataHazards++; return 1; }
 				break;
 			
 			}
@@ -214,16 +222,16 @@ int TestaDataHazard() {
 					return -1;
 				} 
 				
-				if(dependencia(hist[0],hist[1])) 							{ addbolhas(5); return 5; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[2])) 	{ addbolhas(5); return 5; }
-				else if(dependencia(hist[0],hist[2])) 						{ addbolhas(4); return 4; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[3])) 	{ addbolhas(4); return 4; }
-				else if(dependencia(hist[0],hist[3])) 						{ addbolhas(3); return 3; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[4])) 	{ addbolhas(3); return 3; }
-				else if(dependencia(hist[0],hist[4]))						{ addbolhas(2); return 2; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[5])) 	{ addbolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[5])) 						{ addbolhas(1); return 1; }
-				else if(hist[1].paralelo && dependencia(hist[0],hist[6])) 	{ addbolhas(1); return 1; }
+				if (dependencia(hist[0], hist[1])) 								{ addbolhas(5); dataHazards++; return 5; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[2])) 	{ addbolhas(5); dataHazards++; return 5; }
+				else if (dependencia(hist[0], hist[2])) 						{ addbolhas(4); dataHazards++; return 4; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[3])) 	{ addbolhas(4); dataHazards++; return 4; }
+				else if (dependencia(hist[0], hist[3])) 						{ addbolhas(3); dataHazards++; return 3; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[4])) 	{ addbolhas(3); dataHazards++; return 3; }
+				else if (dependencia(hist[0], hist[4]))							{ addbolhas(2); dataHazards++; return 2; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[5])) 	{ addbolhas(2); dataHazards++; return 2; }
+				else if (dependencia(hist[0], hist[5])) 						{ addbolhas(1); dataHazards++; return 1; }
+				else if (hist[1].paralelo && dependencia(hist[0], hist[6])) 	{ addbolhas(1); dataHazards++; return 1; }
 				break;
 			
 			}
@@ -233,26 +241,26 @@ int TestaDataHazard() {
 		switch(N_STAGES) {
 			case 5: {
 				/*verifica se rd das duas instrucoes anteriores sao	rt ou rs da atual */
-				if(dependencia(hist[0],hist[1]))      { addbolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[2])) { addbolhas(1); return 1; }
+				if (dependencia(hist[0], hist[1]))      { addbolhas(2); dataHazards++; return 2; }
+				else if (dependencia(hist[0], hist[2])) { addbolhas(1); dataHazards++; return 1; }
 				break;
 			}
 			case 7: {
 			    /*Instruction Fetch tem um estagio a mais, e MEM tambem tem. Eh preciso 
 			      checar 3 instrucoes anteriores */
-				if(dependencia(hist[0],hist[1]))      { addbolhas(3); return 3; }
-				else if(dependencia(hist[0],hist[2])) { addbolhas(2); return 2; }
-				else if(dependencia(hist[0],hist[3])) { addbolhas(1); return 1; }
+				if (dependencia(hist[0], hist[1]))      { addbolhas(3); dataHazards++; return 3; }
+				else if (dependencia(hist[0], hist[2])) { addbolhas(2); dataHazards++; return 2; }
+				else if (dependencia(hist[0], hist[3])) { addbolhas(1); dataHazards++; return 1; }
 				break;
 			}
 			case 13: {
 				/*Instruction Fetch:2 estagios, ID: 5 estagios, REG acessado no estagio 8
 				 e escrito no estagio 13 */
-				 if(dependencia(hist[0],hist[1])) { addbolhas(5); return 5; }
-				 if(dependencia(hist[0],hist[2])) { addbolhas(4); return 4; }
-				 if(dependencia(hist[0],hist[3])) { addbolhas(3); return 3; }
-				 if(dependencia(hist[0],hist[4])) { addbolhas(2); return 2; }
-				 if(dependencia(hist[0],hist[5])) { addbolhas(1); return 1; }
+				if (dependencia(hist[0], hist[1])) { addbolhas(5); dataHazards++; return 5; }
+				if (dependencia(hist[0], hist[2])) { addbolhas(4); dataHazards++; return 4; }
+				if (dependencia(hist[0], hist[3])) { addbolhas(3); dataHazards++; return 3; }
+				if (dependencia(hist[0], hist[4])) { addbolhas(2); dataHazards++; return 2; }
+				if (dependencia(hist[0], hist[5])) { addbolhas(1); dataHazards++; return 1; }
 				 break;
 			}
 		}
@@ -268,7 +276,9 @@ int TestaControlHazard(){
 	   quando o PC eh atualizado */
 	if (hist[0].instrucao >= ij && hist[0].instrucao <= ijalr) {
 		Empty();
+		controlHazards++;
 		bolhas += N_STAGES-2;
+		controlHazards++;
 		return N_STAGES-2;
 	}
 	
@@ -277,13 +287,18 @@ int TestaControlHazard(){
 		/*se predictor for de 1 bit */
 		if (BR_PR) {
 			/* se predictor acertou, nao ha bolhas extras*/
-			if(taken == historicoPredictor) return 0;
+			if (taken == historicoPredictor) {
+				
+				return 0;
+			}
 			/*se errou, tem que inserir bolhas e atualizar bit historico*/
 			else {
 				Empty();
 				historicoPredictor = taken;
 				/* N_STAGES (encher pipeline novamente) */
 				bolhas += N_STAGES;
+				branchMissPredictions++;
+				controlHazards++;
 				return N_STAGES;
 			}
 		}
@@ -296,12 +311,16 @@ int TestaControlHazard(){
 			else if(taken && historicoPredictor) {
 				historicoPredictor = 3;
 				bolhas += N_STAGES;
+				branchMissPredictions++;
+				controlHazards++;
 				Empty();
 				return N_STAGES;
 			}
 			else if(taken && !historicoPredictor) {
 				historicoPredictor = 1;
 				bolhas += N_STAGES;
+				branchMissPredictions++;
+				controlHazards++;
 				Empty();
 				return N_STAGES;
 			}
@@ -312,12 +331,16 @@ int TestaControlHazard(){
 			else if(!taken && historicoPredictor == 3) {
 				historicoPredictor = 2;
 				bolhas += N_STAGES;
+				branchMissPredictions++;
+				controlHazards++;
 				Empty();
 				return N_STAGES;
 			}
 			else if(!taken && historicoPredictor == 2) {
 				historicoPredictor = 0;
 				bolhas += N_STAGES;
+				branchMissPredictions++;
+				controlHazards++;
 				Empty();
 				return N_STAGES;
 			}
@@ -409,8 +432,15 @@ void ac_behavior(end)
   if(BR_PR) bits=1;
   else bits=2;
   printf("   Branch Predictor: %d bits\n",bits);
-  if(SUPERSCALAR) printf("   Superscalar Architecture\n");
+  if (SUPERSCALAR){
+	  printf("Superscalar Architecture\n");
+	  printf("Failed parallelization attempts: %d\n", instNaoParalelizaveis);
+  }
   else printf("   Scalar Architecture\n");
+  printf("Data Hazards: %d\n", dataHazards);
+  printf("Control Hazards: %d\n", controlHazards);
+  printf("Branch misspredictions: %d\n", branchMissPredictions);
+  
 }
 
 
