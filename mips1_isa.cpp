@@ -447,7 +447,7 @@ void ac_behavior(end)
   printf("Data Hazards: %llu\n", dataHazards);
   printf("Control Hazards: %llu\n", controlHazards);
   printf("Branch misspredictions: %llu\n", branchMissPredictions);
-  printf("Total de instrucoes: %llu\n", instrucoes);
+  //printf("Total de instrucoes: %llu\n", instrucoes);
   
 }
 
